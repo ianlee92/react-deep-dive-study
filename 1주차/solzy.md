@@ -128,7 +128,8 @@ const Component = () => <Box>...</Box> // :JSX.Element
 >     - 사소한 포인트부터 개선해보자
 >       - ex) 1. useState, useEffect 의존 최소화 [you-might-not-need-an-effect](https://react.dev/learn/you-might-not-need-an-effect)
 >       - ex) 2. SSOT [state의 변경은 한 컴포넌트에서 모두 처리하자](https://react-ko.dev/learn/sharing-state-between-components)
->       - ex) 가벼운 form은 uncontrolled component나 react-hook-form 으로 교체해보자 [제어,비제어 컴포넌트](https://handhand.tistory.com/261), [리액트 form 데이터를 다룰 때 제어 컴포넌트와 비제어 컴포넌트를 선택하는 기준](https://careerly.co.kr/comments/75550)
+>       - ex) 3. 가벼운 form은 uncontrolled component나 react-hook-form 으로 교체해보자 [제어,비제어 컴포넌트](https://handhand.tistory.com/261), [리액트 form 데이터를 다룰 때 제어 컴포넌트와 비제어 컴포넌트를 선택하는 기준](https://careerly.co.kr/comments/75550)
+>       - ex) 4. [불필요한 메모이제이션을 제거하는 원칙](https://d2.naver.com/helloworld/9223303)
 
 
 
