@@ -39,13 +39,32 @@ typeof undefined === 'undefined'
 ```
 - undefined 를 `typeof` 로 검사하면 **undefined** 가 나옴.
 
+### 1.1.4 리액트에서의 동등비교
+- `Object.is` 로 비교한 다음, **얕은 비교**를 한번 더 수행
+  - 얕은 비교는 첫번째 깊이에 존재하는 값만 비교
+
+## 1.2 함수
+### 1.2.4 함수를 만들 때 주의해야 할 사항
+- 함수의 부수효과를 최대한 억제하라
+  - 순수함수를 만들도록 노력할 것
+  - 모든 부수효과를 없앨 수는 없지만, 최소한으로 줄여보자
+    - 🌱 **참고할만한 예제**
+      - [you-might-not-need-an-effect](https://react.dev/learn/you-might-not-need-an-effect)
+      
+- 가능한 함수를 작게 만들어라
+- 누구나 이해할 수 있는 이름을 붙여라
+
+> 🌱 **함수형 프로그래밍**
+> - 코드를 액션, 계산, 데이터를 나눠 작성하는 디자인 패턴 
+> - 복잡한 비즈니스 로직을 정리하는데 첫걸음을 도와주는 패턴
+> - [데이터 / 계산 / 액션 분리하기](https://summerr.tistory.com/130)
 
 # 📚 2장 리액트 핵심 요소 깊게 살펴보기
-## 2.1.1 JSX의 정의
-### JSX
+### 2.1.1 JSX의 정의
+**JSX**
 - 리액트에서 UI를 표현하는데 사용됨.
 
-### JSXElement
+**JSXElement**
 - JSX를 구성하는 가장 작은 요소
 > - 🌱 [함수형 컴포넌트의 리턴타입](https://medium.com/@gogosky1175/reactnode-reactelement-jsx-element%EC%9D%98-%EC%B0%A8%EC%9D%B4-30bfbd4ef4b7) 이며, 리액트의 요소를 나타내는 타입이다.
 
@@ -80,7 +99,9 @@ const Component = () => <Box>...</Box> // :JSX.Element
 - 파이버는 리액트에서 관리하는 자바스크립트 객체
   - 가상 DOM과 실제 DOM을 비교해 변경사항을 수집
   - 이 둘 사이에 차이가 있으면 파이버를 기준으로 화면에 렌더링 요청을 함
-  - > **Reconciliation**
+
+- **Reconciliation**
+  - 가상돔과 실제돔을 비교하는 알고리즘
 
 ## 2.4 렌더링은 어떻게 일어나는가
 
