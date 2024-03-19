@@ -77,6 +77,8 @@ useEffect(() => {
 - `언마운트` : 특정 컴포넌트가 DOM 에서 사라질 때
 - `클린업 함수` : 함수형 컴포넌트가 리렌더링 되었을 때 의존성 변화가 있었을 당시 이전의 값을 기준으로 실행되는 함수
 
+> https://choyeon-dev.tistory.com/10
+
 #### 의존성 배열
 
 ```
@@ -177,6 +179,49 @@ function Component() {
 ### 3.1.7 useImperativeHandle
 > 부모에게서 넘겨받은 ref를 원하는대로 수정할 수 있는 hook
 
+```typescript jsx
+// [전]
+const CommonComponent: ForwardRef<T,P> = ({...}, ref => {
+  
+  return <></>
+})
+
+
+const Sample = () => {
+  const ref = useRef()
+  
+  useEffect(() => {
+    if (ref) {
+      ref.current.foo = () => {
+      // 공통로직
+      }
+    }
+  }, [ref])
+  
+  return <CommonComponent ref={ref}/>
+}
+
+// [후]
+
+const CommonComponent: ForwardRef<T,P> = ({...}, ref => {
+
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        foo() {
+          minRef?.current?.focusIn()
+        },
+      }
+    },
+    [],
+  )
+  
+  return <></>
+})
+
+```
+
 ### 3.1.8 useLayoutEffect
 > useEffect와 동일하나, 모든 DOM의 변경후에 동기적으로 발생한다.
 1. 리액트가 DOM을 업데이트
@@ -188,6 +233,26 @@ function Component() {
 
 #### 언제 사용하나요?
 - DOM은 계산되었지만 이것이 화면에 반영되기 전에 하고싶은 작업이 있을 때 같이 사용
+
+### 3.1.10 useDebugValue
+> 디버깅 하고 싶은 정보를 훅에다 사용하여 개발자 도구에서 볼 수 있게 해주는 hook
+> https://rainsister.tistory.com/139
+
+### 3.1.11 훅의 규칙
+- 최상위에서만 호출
+- 자바스크립트 함수에서는 쓸 수 없다.
+
+## 3.2 사용자 정의 훅과 고차 컴포넌트 중 무엇을 써야 할까?
+### 3.2.2 고차 컴포넌트
+- ex: `React.memo`
+- 공통되는 로직을 고차 컴포넌트에 위임
+- 컴포넌트 전체를 감쌀 수 있다는 점에서 더 큰 영향력을 컴포넌트에 미칠 수 있음.
+- 컴포넌트의 결과물에 영향을 미칠 수 있는 다른 공통된 작업을 처리할 수 있다.
+- `~with` 라는 접두사로 된 컴포넌트를 만들어야 함.
+
+### 3.2.3 사용자 정의 훅과 고차 컴포넌트 중 무엇을 써야 할까?
+- 사용자 정의 훅 : 공통 로직 격리
+- 고차 컴포넌트를 사용해야하는 경우: 함수형 컴포넌트의 반환값, 즉 렌더링의 결과물에도 영향을 미치는 공통로직 
 
 # 📚 5장 리액트와 상태 관리 라이브러리
 ## 5.1 상태 관리는 왜 필요한가?
