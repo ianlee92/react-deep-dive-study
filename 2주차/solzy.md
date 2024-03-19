@@ -77,6 +77,8 @@ useEffect(() => {
 - `언마운트` : 특정 컴포넌트가 DOM 에서 사라질 때
 - `클린업 함수` : 함수형 컴포넌트가 리렌더링 되었을 때 의존성 변화가 있었을 당시 이전의 값을 기준으로 실행되는 함수
 
+> https://choyeon-dev.tistory.com/10
+
 #### 의존성 배열
 
 ```
@@ -177,6 +179,49 @@ function Component() {
 ### 3.1.7 useImperativeHandle
 > 부모에게서 넘겨받은 ref를 원하는대로 수정할 수 있는 hook
 
+```typescript jsx
+// [전]
+const CommonComponent: ForwardRef<T,P> = ({...}, ref => {
+  
+  return <></>
+})
+
+
+const Sample = () => {
+  const ref = useRef()
+  
+  useEffect(() => {
+    if (ref) {
+      ref.current.foo = () => {
+      // 공통로직
+      }
+    }
+  }, [ref])
+  
+  return <CommonComponent ref={ref}/>
+}
+
+// [후]
+
+const CommonComponent: ForwardRef<T,P> = ({...}, ref => {
+
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        foo() {
+          minRef?.current?.focusIn()
+        },
+      }
+    },
+    [],
+  )
+  
+  return <></>
+})
+
+```
+
 ### 3.1.8 useLayoutEffect
 > useEffect와 동일하나, 모든 DOM의 변경후에 동기적으로 발생한다.
 1. 리액트가 DOM을 업데이트
@@ -191,6 +236,7 @@ function Component() {
 
 ### 3.1.10 useDebugValue
 > 디버깅 하고 싶은 정보를 훅에다 사용하여 개발자 도구에서 볼 수 있게 해주는 hook
+> https://rainsister.tistory.com/139
 
 ### 3.1.11 훅의 규칙
 - 최상위에서만 호출
