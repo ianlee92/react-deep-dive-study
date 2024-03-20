@@ -18,6 +18,7 @@
 - 함수를 만들 때 주의사항
 
   - 부수효과를 최대한 억제하라
+    - 어떻게 억제할 수 있지? https://react.dev/learn/you-might-not-need-an-effect
   - 가능한 함수를 작게 만들어라
   - 누구나 이해할 수 있는 이름을 붙여라
 
