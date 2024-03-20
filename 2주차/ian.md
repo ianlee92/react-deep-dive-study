@@ -194,3 +194,136 @@ const [state, dispatcher] = useReducer(reducer, initialState, init);
   ```
 
 # 📚 5장 리액트와 상태 관리 라이브러리
+
+### p.338, 339
+
+- 페이스북 팀은 양방향이 아닌 단방향으로 데이터 흐름을 변경하는 것을 제안하는데 이것이 바로 Flux 패턴의 시작이다.
+  - 액션(action): 어떠한 작업을 처리할 액션과 그 액션 발생 시 함께 포함시킬 데이터를 의미한다. 액션 타입과 데이터를 각각 정의해 이를 디스패처로 보낸다.
+  - 디스패처(dispatcher): 액션을 스토어에 보내는 역할을 한다. 콜백 함수 형태로 앞서 액션이 정의한 타입과 데이터를 모두 스토어에 보낸다.
+  - 스토어(store): 실제 상태에 따른 값과 상태를 변경할 수 있는 메서드를 가지고 있다. 액션의 타입에 따라 어떻게 이를 변경할지가 정의돼 있다.
+  - 뷰(view): 리액트의 컴포넌트에 해당하는 부분, 스토어에 만들어진 데이터를 가져와 화면을 렌더링하는 역할을 한다.
+
+### p.347
+
+- useSWR의 첫 번째 인수로 조회할 API 주소를, 두 번째 인수로 조회에 사용되는 fetch를 넘겨준다.
+- 첫 번째 인수인 API 주소는 키로도 사용되며, 이후에 다른 곳에서 동일한 키로 호출하면 재조회하는 것이 아니라 useSWR이 관리하고 있는 캐시의 값을 활용한다.
+
+### p.348
+
+```tsx
+// Recoil
+const counter = atom({ key: "count", default: 0 });
+const todoList = useRecoilValue(counter);
+
+// Jotai
+const constAtom = atom(0);
+const [count, setCount] = useAtom(countAtom);
+
+// Zustand
+const useCounterStore = create((set) => ({
+  counter: 0,
+  increase: () => set((state) => ({ count: state.count + 1 })),
+}));
+const count = useCounterStore((state) => state.count);
+
+// Valtio
+const state = proxy({ count: 0 });
+const snap = useSnapshot(state);
+state.count++;
+```
+
+### p.351
+
+- useState를 useReducer로 구현하는 예제
+- useReducer의 첫 번째 인수로는 reducer, 즉 state와 action을 어떻게 정의할지를 넘겨줘야 하는데 useState와 동일한 작동, 즉 T를 받거나 (prev: T) => T를 받아 새로운 값을 설정할 수 있게끔 코드를 작성했다.
+
+  ```tsx
+  type Initializer<T> = T extends any ? T | ((prev: T) => T) : never;
+
+  function useStateWithUseReducer<T>(initialState: T) {
+    const [state, dispatch] = useReducer(
+      (prev: T, action: Initializer<T>) =>
+        typeof action === "function" ? action(prev) : action,
+      initialState
+    );
+    return [state, dispatch];
+  }
+  ```
+
+- useReducer를 useState로 작성할 수 있다.
+
+  ```tsx
+  function useReducerWithUseState(reducer, initialState, initializer) {
+    const [state, setState] = useState(
+      initializer ? () => intializer(initialState) : initialState
+    );
+
+    const dispatch = useCallback(
+      (action) => setState((prev) => reducer(prev, action)),
+      [reducer]
+    );
+
+    return [state, dispatch];
+  }
+  ```
+
+### p.355
+
+- 업데이트되는 값을 가져오려면 상태를 업데이트하는 것뿐만 아니라 상태가 업데이트됐을 때 이를 컴포넌트에 반영시키기 위한 리렌더링이 필요하며 함수 컴포넌트에서 리렌더링을 하려면 다음과 같은 작업 중 하나가 일어나야 한다.
+- useState, useReducer의 반환값 중 두 번째 인수가 어떻게든 호출된다. 두 번째 인수가 호출되면 리액트는 다시 컴포넌트를 렌더링한다.
+- 부모 함수(부모 컴포넌트)가 리렌더링되거나 해당 함수(함수 컴포넌트)가 다시 실행돼야 한다.
+
+### p.372
+
+- Recoil과 Jotai는 Context와 Provider, 그리고 훅을 기반으로 가능한 작은 상태를 효율적으로 관리하는 데 초점을 맞추고 있다.
+- Zustand는 리덕스와 비슷하게 하나의 큰 스토어를 기반으로 상태를 관리하는 라이브러리다. Recoil, Jotai와는 다르게 이 하나의 큰 스토어는 Context가 아니라 스토어가 가지는 클로저를 기반으로 생성되며, 이 스토어의 상태가 변경되면 이 상태를 구독하고 있는 컴포넌트에 전파해 리렌더링을 알리는 방식이다.
+
+### 페이스북이 만든 상태 관리 라이브러리 Recoil (p.373~384)
+
+- Recoil은 리액트를 만든 페이스북에서 만든 리액트를 위한 상태 관리 라이브러리다.
+- Recoil을 사용하기 위해서는 RecoilRoot를 애플리케이션의 최상단에 선언해 둬야 한다.
+- RecoilRoot에서 Recoil에서 생성되는 상태값을 저장하기 위한 스토어를 생성하는 것을 확인할 수 있다.
+- useStoreRef로 ancestorStoreRef의 존재를 확인하는데, 이는 Recoil에서 생성되는 atom과 같은 상태값을 저장하는 스토어를 의미한다.
+- useStoreRef가 가리키는 것은 다름 아닌 AppContext가 가지고 있는 스토어다.
+  ```tsx
+  const AppContext = React.createContext<StoreRef>({ current: defaultStore });
+  const useStoreRef = (): StoreRef => useContext(AppContext);
+  ```
+- Recoil의 상태값은 RecoilRoot로 생성된 Context의 스토어에 저장된다.
+- 스토어의 상태값에 접근할 수 있는 함수들이 있으며, 이 함수를 활용해 상태값에 접근하거나 상태값을 변경할 수 있다.
+- 값의 변경이 발생하면 이를 참조하고 있는 하위 컴포넌트에 모두 알린다.
+- atom은 상태를 나타내는 Recoil의 최소 상태 단위다.
+
+  ```tsx
+  // Atom 선언
+  const statementsAtom = atom<Array<Statement>>({
+    key: "statements",
+    default: InitialStatements,
+  });
+  ```
+
+- atom은 key 값을 필수로 가지며, 이 키는 다른 atom과 구별하는 식별자가 되는 필수 값이다.
+- defulat는 atom의 초깃값을 의미한다. 이 값의 변화에 따라 컴포넌트를 리렌더링하기 위해 useRecoilValue와 useRecoilState를 사용한다.
+- 컴포넌트는 Recoil에서 제공하는 훅을 통해 atom의 상태 변화를 구독(subscribe)하고, 값이 변경되면 forceUpdate 같은 기법을 통해 리렌더링을 실행해 최신 atom 값을 가져오게 된다.
+
+### Recoil에서 영감을 받은, 그러나 조금 더 유연한 Jotai (p.384~391)
+
+- Recoil의 atom 모델에 영감을 받아 만들어진 상태 관리 라이브러리다.
+- Jotai는 상향식(bottom-up) 접근법을 취하고 있다. 이는 리덕스와 같이 하나의 큰 상태를 애플리케이션에 내려주는 방식이 아니라, 작은 단위의 상태를 위로 전파할 수 있는 구조를 취하고 있음을 의미한다.
+- 리액트 Context의 문제점인 불필요한 리렌더링이 일어나는 문제를 해결하고자 설계돼 있으며 메모이제이션이나 최적화를 거치지 않아도 리렌더링이 발생되지 않도록 설계돼 있다.
+- atom을 생성할 때마다 고유한 key를 필요로 했던 Recoil과는 다르게, Jotai는 atom을 생성할 때 별도의 key를 넘겨주지 않아도 된다.
+- config이라는 객체를 반환하는데, 초깃값을 의미하는 init, 값을 가져오는 read, 값을 설정하는 write만 존재한다.
+- Recoil과는 다르게 컴포넌트 루트 레벨에서 Context가 존재하지 않아도 되는데, Context가 없다면 Provider가 없는 형태로 기본 스토어를 루트에 생성하고 이를 활용해 값을 저장하기 때문이다.
+- atom의 값은 store에 존재한다. store에 atom 객체 그 자체를 키로 활용해 값을 저장한다. 이러한 방식을 위해 WeakMap이라고 하는 자바스크립트에서 객체만을 키로 가질 수 있는 독특한 방식의 Map을 활용해 recoil과는 다르게 별도의 key를 받지 않아도 스토어에 값을 저장할 수 있다.
+- rerenderIfChanged가 일어나는 경우는 넘겨받은 atom이 Reducer를 통해 스토어에 있는 atom과 달라지는 경우, subscribe를 수행하고 있다가 어디선가 이 값이 달라지는 경우다.
+- 기본적인 API 외에도 localStorage와 연동해 영구적으로 데이터를 저장하거나, Next.js, 리액트 네이티브와 연동하는 등 상태와 관련된 다양한 작업을 Jotai에서 지원한다.
+- Jotai는 사용자가 별도의 키를 관리할 필요가 없다. 각 값들을 관리할 수 있는 것은 객체의 참조를 통해 값을 관리하기 때문이다. 객체의 참조를 WeakMap에 보관해 해당 객체 자체가 변경되지 않는 한 별도의 키가 없어도 객체의 참조를 통해 값을 관리할 수 있다.
+- Recoil에서는 atom에서 파생된 값을 만들기 위해 selector가 필요했지만, Jotai에서는 selector가 없이도 atom만으로 atom 값에서 또 다른 파생된 상태를 만들 수 있다.
+
+### 작고 빠르며 확장에도 유연한 Zustand (p.391~399)
+
+- Jotai가 Recoil의 영감을 받아 만들어졌다면, Zustand는 리덕스에 영감을 받아 만들어졌다.
+- 즉, atom이라는 최소 단위의 상태를 관리하는 것이 아니라 Zustand에서는 하나의 스토어를 중앙 집중형으로 활용해 이 스토어 내부에서 상태를 관리하고 있다.
+- Zustand 자체 라이브러리 크기는 79.1kB인 Recoil, 13.1kB인 Jotai와 다르게 고작 2.9kB밖에 되지 않는다.
+- Zustand는 리덕스와 마찬가지로 미들웨어를 지원한다. create의 두 번째 인수로 원하는 미들웨어를 추가하면 되는데, 스토어 데이터를 영구히 보존할 수 있는 persist, 복잡한 객체를 관리하기 쉽게 도와주는 immer, 리덕스와 함께 사용할 수 있는 리덕스 미들웨어 등 여러 가지 미들웨어를 제공해 필요한 미들웨어를 사용할 수 있게 도와준다.
+- 이 미들웨어를 사용하면 상태를 sessionStorage에 추가로 저장하는 등의 기본적인 상태 관리 작동 외에 추가적인 작업을 정의할 수도 있다.
