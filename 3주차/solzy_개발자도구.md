@@ -38,6 +38,7 @@ const DivMarker = styled.div`
 ## 결과
 > 개발자도구의 퍼포먼스 탭을 이용했습니다.
 ![img_2.png](solzy-images/img_2.png)
+> 
 > React Profiler와 동일하게 녹화해서 사용할 수 있음 ! 
 >
 > https://codingmoondoll.tistory.com/entry/%ED%81%AC%EB%A1%AC-%EA%B0%9C%EB%B0%9C%EC%9E%90-%EB%8F%84%EA%B5%AC%EC%9D%98-Performance-%ED%83%AD-%EB%8B%A4%EB%A3%A8%EA%B8%B0-%EA%B8%B0%EB%B3%B8%ED%8E%B8
@@ -53,6 +54,7 @@ const DivMarker = styled.div`
 - `Recalculate Style` 과정에 두 배 정도 차이남 (cssdom, render tree 만드는 과정)
 - 왜? 모를땐 Chat GPT ...
   - ![img_5.png](solzy-images/img_5.png)
+- 
   **- 결론: 크롬 브라우저는 div태그와 관련된 스타일 처리에 최적화되어있다.**
 
 
