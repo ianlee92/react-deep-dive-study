@@ -78,6 +78,270 @@ const rootElement = document.getElementById('root')
 ReactDom.render(<App/>, rootElement)
 ```
 
-- hydrate : 기본적으로 이미 렌더링 된 HTML이 있다는 가정하에 작업이 수행
+**hydrate**
+- 기본적으로 이미 렌더링 된 HTML이 있다는 가정하에 작업이 수행
+- 단순히 이벤트나 핸들러를 추가하는 것 이외에도 렌더링을 한번 수행하면서 hydrate가 수행한 렌더링 결과물 HTML 과 인수로 넘겨받은 HTML 을 비교하는 작업을 수행한다. 
+
+### 4.2.6 서버 사이드 렌더링 예제 프로젝트
+> https://github.com/wikibook/react-deep-dive-example/tree/main/chapter4/ssr-example
+
+**index.tsx**
+```typescript jsx
+async function main() {
+  const result = await fetchTodo()
+
+  const app = <App todos={result} />
+  const el = document.getElementById('root')
+
+  hydrate(app, el)
+}
+
+main()
+```
+
+- 서버로 부터 받은 HTML을 hydrate를 통해 웹 애플리케이션으로 만든다.
+
+**index.html**
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SSR Example</title>
+  </head>
+  <body>
+    __placeholder__ // 서버에서 리액트 컴포넌트를 기반으로 만든 HTML 코드를 삽입하는 자리
+    <script src="https://unpkg.com/react@17.0.2/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.development.js"></script>
+    <script src="/browser.js"></script> // 클라이언트 리액트 애플리케이션 코드를 번들링했을 때 제공되는 리액트 자바스크립트 코드
+  </body>
+</html>
+```
+- 서버사이드 렌더링을 수행할 때 기본이 되는 HTML 템플릿
+
+**server.ts**
+
+1.createServer
+```typescript
+  createServer(serverHandler).listen(PORT, () => {
+    console.log(`Server has been started ${PORT}...`) // eslint-disable-line no-console
+  })
+```
+- http 모듈을 이용해 간단한 서버를 만들 수 있는 노드 기본 라이브러리
+- 3000 번 포트를 이용하는 서버를 만들었다고 생각하면 된다.
+
+2. serverHandler
+```typescript
+async function serverHandler(req: IncomingMessage, res: ServerResponse) {
+  const { url } = req
+
+  switch (url) {
+    case '/': { ....
+```
+- HTTP 서버가 라우트별로 어떻게 작동할 지 정의하는 함수
+
+3. server.ts의 root router
+
+```typescript
+ case '/': {
+      const result = await fetchTodo()
+
+      const rootElement = createElement(
+        'div',
+        { id: 'root' },
+        createElement(App, { todos: result }),
+      )
+      const renderResult = renderToString(rootElement)
+
+      const htmlResult = html.replace('__placeholder__', renderResult)
+
+      res.setHeader('Content-Type', 'text/html')
+      res.write(htmlResult)
+      res.end()
+      return
+    }
+```
+
+- 사용자가 `/` 로 접근했을 때 실행되는 코드
+- `renderToString` 으로 리액트 컴포넌트를 html로 만들었고,
+- 앞서 언급한 `__placeholder__`를 대상으로 실행해 서버 응답으로 제공했다.
+
+
+**webpack.config.js**
+```typescript
+
+/** @type WebpackConfig[] */
+const configs = [
+  {
+    entry: {
+      browser: './src/index.tsx', // 브라우저의 경우 entry => 시작점
+    },
+    output: {
+      path: path.join(__dirname, '/dist'), // 결과물 저장경로
+      filename: '[name].js',
+    },
+    resolve: {
+      extensions: ['.ts', '.tsx'],
+    },
+    devtool: 'source-map',
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          loader: 'ts-loader', // 필요한 파일 로더
+        },
+      ],
+    },
+    externals: {
+      react: 'React',
+      'react-dom': 'ReactDOM', // 제외할 내용
+    },
+  },
+  {
+    entry: {
+      server: './src/server.ts',
+    },
+    output: {
+      path: path.join(__dirname, '/dist'),
+      filename: '[name].js',
+    },
+    resolve: {
+      extensions: ['.ts', '.tsx'],
+    },
+    devtool: 'source-map',
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          loader: 'ts-loader',
+        },
+        {
+          test: /\.html$/,
+          use: 'raw-loader',
+        },
+      ],
+    },
+    target: 'node',
+    externals: [nodeExternals()],
+  },
+]
+
+module.exports = configs
+```
+
+- `create-react-app` 으로 만들면 이러한 설정을 내부에서 모두 대신해줌
+
+## 4.3 Next.js 톺아보기
+
+```shell
+npx create-next-app@latest --ts
+```
+
+### **package.json**
+- 프로젝트 구동에 필요한 모든 명령어 및 의존성이 포함되어 있음.
+```json
+{
+  "name": "deep-dive-next-js-part",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "next": "14.1.4" // 책과 다르게 14버전 ㅠ
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.1.4" // next.js 기반 프로젝트에서 사용하도록 만들어진 ESLint 설정
+  }
+}
+
+```
+
+### next.config.js
+- 난 왜 확장자가 `.mjs` 일까..?
+> mjs 와 .js는 다양한 유형의 JavaScript 파일을 나타내는 데 사용되는 파일 확장자
+> 1. js (Javascript)
+>  - .js 확장자는 JavaScript 파일의 가장 일반적인 파일 확장자 
+>  - .js 의 의므는 파일에 JavaScript 코드가 포함되어 있음을 나타내는데 사용이 되고 이는 웹 브라우저, 서버 및 기타 다양한 JavaScript 환경에서 실행할 수 있음
+>  2. .mjs(ECMAScript Modules)
+>   - MJS는 정석대로 ECMAScript 모듈(ESM) 사양을 준수하는 JavaScript 파일에 사용되는 확장자
+>   - ECMAScript 모듈은 JavaScript 언어 표준의 일부고 모듈을 정의하는 보다 현대적이고 표준화된 방법을 제공.
+
+=> 그냥 가장 현대적인 방법인 .mjs 로 생성된것 뿐...
+
+
+```typescript
+/** @type {import('next').NextConfig} */ => 자바스크립트 파일에 타입스크립트의 타입을 도움받기 위해 추가된 코드
+const nextConfig = {
+          reactStrictMode: true, // 리액트의 엄격 모드 
+          swcMinify: true // SWC는 번들링과 컴파일을 더욱 빠르게 수행하기 위해 만들어짐. 바벨의 대안. 왜 빠르냐면, 러스트로 작성되어 있고, 병렬로 작업을 처리.
+                          // 즉, swc를 기반으로 코드 최소화 작업을 할 것인지 여부를 설정하는 속성
+        };
+
+export default nextConfig;
+
+```
+
+### _app.tsx
+```typescript jsx
+import type { AppProps } from 'next/app'
+
+export default function App({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />
+}
+```
+- 애플리케이션의 전체 페이지 시작점
+  - 에러 바운더리를 사용해 전역에서 발생하는 에러 처리
+  - reset.css 같은 전역 css선언
+  - 모든 페이지에서 공통으로 사용 혹은 제공해야 하는 데이터 제공
+- 최초에는 서버 사이드 렌더링을, 이후에는 클라이언트에서 _app.tsx의 렌더링이 실행된다.
+
+### _document.tsx
+```typescript jsx
+import { Html, Head, Main, NextScript } from 'next/document'
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head />
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  )
+}
+```
+- html을 초기화하는 곳
+- html , body 에 dom속성을 추가하고 싶을 때
+- 무조건 서버에서 실행됨
+- head에는 SEO에 필요한 정보나 title 등을 담을 수 있음.
+- `<Head/>` 에는 `<title/>` 을 사용할 수 없음.
+
+- app.tsx 는 next.js를 초기화하는 파일. next.js의 설정과 관련된 코드를 모아둠. 그래서 서버와 클라이언트 모두에서 렌더링될 수 있다.
+- _document.tsx 는 Next.js로 만드는 웹사이트의 뼈대가 되는 HTML 설정과 관련된 코드를 추가하는 곳이며 반드시 서버에서만 렌더링된다.
+
+### _error.tsx
+- 에러를 처리할 목적
+- 프로덕션 빌드로 확인해봐야함.
+- 
+### 404.tsx
+- 404페이지 정의
+
+### 500.tsx
+- 서버에서 발생하는 에러 핸들링
+- error 와 500페이지 둘다 있다면, 500페이지 먼저 실행
+
 
 # 📚 8장 좋은 리액트 코드 작성을 위한 환경 구축하기
