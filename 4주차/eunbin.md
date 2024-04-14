@@ -133,3 +133,167 @@
 - css in js
 
 # 📚 8장 좋은 리액트 코드 작성을 위한 환경 구축하기
+
+## ESlint
+
+- espree라는 파서를 이용해 코드를 구조화
+- eslint-plugin: import와 같이 특정 프레임워크나 도메인 관련 규칙을 묶어서 제공하는 패키지
+- eslint-config: 위와 같은 eslint-plugin을 한데 묶어서 완벽하게 한 세트로 제공하는 패키지
+  - 직접 만들 수 있으나 매우 번거로움. eslint-config뒤에 접두사를 붙이는 형태로 네이밍해야하며, 반드시 한 단어로 구성
+  - eslint-config-airbnb
+  - @titicaca/triple-config-kit
+  - eslint-config-next: 단순히 자바스크립트 코드를 정적으로 분석할 뿐 아니라 페이지나 컴포넌트에서 반환하는 jsx구문 및 _app, _document 파일 또한 정적 분석 대상으로 분류해 제공,
+  - 핵심 웹 지표(core web vitals)를 분석해 제공
+
+### 이미 있는 규칙을 커스터마이징해서 적용하기
+
+- import React 제거하기
+- lodash
+
+```jsx
+module.exports = {
+  rules: {
+    'no-restricted-imports': {
+      'error',
+      {
+        paths: [
+          {
+            name: 'react',
+            importNames: ['default'],
+            message: "import React from 'react'는 react 17부터 더 이상 필요하지 않습니다. 필요한 것만 react import해서 사용해주세요"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+### 새로운 규칙 만들기
+
+### 주의할 점
+
+- Prettier와의 충돌
+  - 서로 규칙이 충돌되지 않게 규칙 설정하기
+    - Prettier에서 제공하는 규칙을 ESLint에서 끈다.
+  - 자바스크립트나 타입스크립트는 ESLint에, 그 외의 파일은 Prettier에 맡긴다.
+    - eslint-plugin-prettier: Prettier에서 제공하는 모든 규칙을 ESLint에서 사용할 수 있는 규칙으로 만든 플러그인
+  - ESLint 버전 충돌
+    - 설치하고자하는 eslint-config, eslint-plugin이 지원하는 ESLint버전을 확인하고 설치하고자하는 프로젝트에서 지원하는 ESLint 버전을 확인하고 두 버전 모두를 충족시킬 수 있는 환경을 만들어두어야한다.
+    - ESLint의 의존성은 peerDependencies로 명시하는 것을 권장한다.
+
+- 특정 규칙에 대한 예외처리하기
+  - `eslint-disable-*`주석을 사용한다.
+
+### eslint-disable-line no-exhaustive-deps 주석을 사용하지 말하야하는 경우
+
+- 괜찮다고 임의로 판단한 경우: 해당 변수는 컴포넌트의 상태와 별개로 동작한다는 것을 의미한다.
+- 의존성배열이 너무 긴 경우: useEffect를 쪼개야한다는 것을 의미한다.
+- 마운트 시점에 한 번만 실행하고 싶은 경우: 
+  - []배열이 있다는 것은 컴포넌트의 상태값과 별개의 부수효과가 되어 컴포넌트의 상태와 불일치가 일어날 수 있다.
+  - 상태와 관계없이 한 번만 실행되어야하는 것이 있다면 해당 컴포넌트에 존재할 이유가 없다.
+
+
+해결 방법)
+
+1. Stateful dependency
+   내부에 접근하는 상태가 있어서 종속성 배열에 추가해야하는 경우, 다음과 같이 setState함수의 콜백함수를 수정하여 해결할 수 있다.
+   
+   ```jsx
+   useEffect(() => {
+    setCount(count + 1);
+    // eslint-disable-next-line
+   }, []);
+
+   // fix
+  useEffect(() => {
+   setCount((count) => count + 1);
+   }, []);
+   ```
+
+2. Function dependency
+
+  아래와 같은 상황에서 종속성 배열에 함수를 추가해야한다는 warning이 발생한다.
+
+  ```jsx
+  const someFunction = (count) => {
+    // do something with count
+  };
+
+  useEffect(() => {
+    someFunction(count);
+  }, [count]);
+  ```
+  그러나 someFunction을 종속성 배열에 추가하면 무한 루프가 발생하게 된다. 왜냐하면 someFunction함수는 렌더링이 일어날 때마다 서로 다른 값을 참조하기 때문이다.
+
+  이를 해결하기 위해서는 someFunction함수를 useCallback 훅으로 감싸 각각의 렌더링 시에 someFunction 함수의 참조값이 변경되지 않도록 보장해야한다.
+  ```jsx
+  const someFunction = useCallback((count) => {
+    // do something with count
+  }, []);
+
+  useEffect(() => {
+    someFunction(count);
+  }, [count, someFunction]);
+  ```
+
+3. 위 방법들로 해결이 안될 경우,,
+   useEffect 콜백 함수 내에서 기본적인 비교 구문을 통해 필요한 경우 로직을 early return으로 빠르게 끝내는 방법을 사용할 수 있다.
+   ```jsx
+   useEffect(() => {
+    if (post.id === undefined) {
+      return;
+    }
+    doSomethingWithPost(post)
+   }, [post]);
+   ```
+
+## 리액트 테스트 라이브러리
+
+> 테스트가 이뤄야할 목표는 애플리케이션이 비즈니스 요구사항을 충족하는지 확인하는 것이다.
+
+- 테스팅: 개발자가 만든 프로그램이 코딩을 한 의도대로 작동하는지 확인하는 일련의 작업
+  - 처음에 설계한 대로 프로그램이 작동하는가?
+  - 버그를 사전에 방지
+  - 잘못된 작동으로 인해 발생하는 비용을 줄일 수 있다.
+  - 코드 수정 시 수정된 내용에 예외케이스가 없는지 확인할 수 있다.
+- 백엔드의 테스팅
+  - 서버나 데이터베이스에서 데이터를 올바르게 가져오는가?
+  - 데이터 수정 간 교착상태 발생?
+  - 등 화이트박스 테스트.
+- 프론트엔드의 테스팅
+  - 일반적인 사용자와 동일하거나 유사한 환경에서 수행됨.
+  - 블릭박스 형태 테스트
+  - 코드와 상관없이 의도대로 작동하는지에 초점이 맞춰짐.
+  - 브라우저에서 발생할 수 있는 다양한 시나리오에서 어떻게 작동할 지 최대한 예측해서 확인해야 함.
+  
+  ### 리액트 테스팅 라이브러리
+  - Dom Testing Library > jsdom을 기반으로 구현되어있음.
+    - 자바스크립트 환경에서도 HTML을 사용할 수 있음.
+  - 어설션(assertion)라이브러리 - 테스트 결과를 확인할 수 있도록 도와주는 라이브러리.
+  - 테스팅 프레임워크(ex. Jest, Mocha,,) - 테스트에 대한 결과와 관련 정보를 일목요연하게 확인할 수 있다.
+    - 무엇을 테스트했는지, 소요된 시간은 어느정도인지, 무엇이 성공하고 실패했는지,,,
+  
+- 컴포넌트 테스팅
+  - getBy~: 인수의 조건에 맞는 요소를 반환한다.
+  - findBy~
+  - queryBy~
+  - beforeEach
+  - describe
+  - it
+  - testId
+  
+- fetch() 테스트하기
+  - jest.spyOn()을 이용해 fetch를 모킹한다.
+  - MSW(Mock Service Worker): 브라우저와 Nodejs 모두에서 사용할 수 있는 모킹 라이브러리.
+
+- react-hooks-testing-library
+  - renderHook메서드 내부에서 컴포넌트를 생성하여 훅을 실행하여 테스트한다. 
+
+### 테스트를 작성할 때 고려해야할 점.
+
+- 애플리케이션에서 가장 취약하거나 중요한 부분을 파악한다.
+- 테스트 커버리지를 맹신하지 말자.
+
+
+
